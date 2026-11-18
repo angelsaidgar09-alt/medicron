@@ -1,0 +1,25 @@
+[server]
+enableStaticServing = true
+# El puerto 80 se pasa por línea de comandos al ejecutar en local
+# (ver lanzar_app.py). Así la misma configuración sirve para publicar en internet.
+
+[theme]
+baseRadius = "0.75rem"
+
+[theme.light]
+primaryColor = "#0077b6"
+backgroundColor = "#f4f8fb"
+secondaryBackgroundColor = "#ffffff"
+textColor = "#1d3557"
+borderColor = "#cfe3ef"
+
+[theme.dark]
+primaryColor = "#00b4d8"
+backgroundColor = "#0e1726"
+secondaryBackgroundColor = "#17223a"
+textColor = "#e6edf7"
+borderColor = "#2b3a55"
+
+# Sin internet: no enviar estadísticas de uso (evita esperas y avisos).
+[browser]
+gatherUsageStats = false
