@@ -1,3 +1,4 @@
+import base64
 import html
 from pathlib import Path
 
@@ -7,10 +8,33 @@ import streamlit as st
 # 1. CONFIGURACIÓN DE LA PÁGINA
 st.set_page_config(page_title="MediCrón | Asistente de Medicación Crónica", page_icon="🏥", layout="centered")
 
-# Logo servido por Streamlit. El parámetro ?v=<fecha> evita que el navegador
-# muestre una copia vieja cuando se reemplaza la imagen.
-RUTA_LOGO = Path(__file__).parent / "static" / "logo_medicron.png"
-LOGO_URL = f"app/static/logo_medicron.png?v={int(RUTA_LOGO.stat().st_mtime)}"
+# Logo incrustado como data URI: no depende de servir archivos estáticos,
+# así funciona igual en local y en la nube, y no puede dar error 404.
+# Se busca en varias ubicaciones porque al subir a GitHub es fácil que la imagen
+# quede suelta en la raíz del repositorio en vez de dentro de static/.
+# Si no aparece en ninguna, la app sigue funcionando y muestra el nombre como texto.
+NOMBRES_LOGO = ("static/logo_medicron.png", "logo_medicron.png")
+
+
+def _buscar_logo() -> Path | None:
+    for carpeta in (Path(__file__).parent, Path.cwd()):
+        for nombre in NOMBRES_LOGO:
+            ruta = carpeta / nombre
+            if ruta.is_file():
+                return ruta
+    return None
+
+
+RUTA_LOGO = _buscar_logo()
+HAY_LOGO = RUTA_LOGO is not None
+if HAY_LOGO:
+    try:
+        LOGO_URL = "data:image/png;base64," + base64.b64encode(RUTA_LOGO.read_bytes()).decode("ascii")
+    except OSError:
+        HAY_LOGO = False
+        LOGO_URL = ""
+else:
+    LOGO_URL = ""
 
 # 2. ESTILOS CSS PARA COLORES INTERACTIVOS Y DISEÑO AMIGABLE
 # El fondo y los colores base se configuran en .streamlit/config.toml.
@@ -131,19 +155,26 @@ st.html("""
         100% { transform: translateX(260%); }
     }
     </style>
-""".replace("__LOGO__", LOGO_URL))
+""".replace("__LOGO__", LOGO_URL or "none"))
 
 # 3. LOGO DE LA APLICACIÓN (imagen en static/, servida por Streamlit)
 # En modo oscuro, .logo-blanco superpone una silueta blanca del mismo logo.
 
 # Transición de carga al abrir la web (solo la primera vez por sesión)
 if not st.session_state.get("intro_mostrada"):
+    if HAY_LOGO:
+        marca_splash = (
+            "<img src='" + LOGO_URL + "' alt=''>"
+            "<span class='logo-blanco'></span>"
+        )
+    else:
+        marca_splash = (
+            "<span style='font-size: 34px; font-weight: 700; letter-spacing: 1px;'>"
+            "MediCrón</span>"
+        )
     st.html(
         "<div class='splash' aria-hidden='true'>"
-        "<div class='splash-logo'>"
-        "<img src='" + LOGO_URL + "' alt=''>"
-        "<span class='logo-blanco'></span>"
-        "</div>"
+        "<div class='splash-logo'>" + marca_splash + "</div>"
         "<p class='splash-texto'>Preparando tu guía…</p>"
         "<div class='splash-barra'><span></span></div>"
         "</div>"
@@ -152,12 +183,17 @@ if not st.session_state.get("intro_mostrada"):
 
 # Encabezado apilado y centrado: logo (incluye el nombre) y eslogan
 with st.container(horizontal_alignment="center"):
-    st.html(
-        "<div class='logo-medi'>"
-        "<img src='" + LOGO_URL + "' alt='Logo MediCrón'>"
-        "<span class='logo-blanco' aria-hidden='true'></span>"
-        "</div>"
-    )
+    if HAY_LOGO:
+        st.html(
+            "<div class='logo-medi'>"
+            "<img src='" + LOGO_URL + "' alt='Logo MediCrón'>"
+            "<span class='logo-blanco' aria-hidden='true'></span>"
+            "</div>"
+        )
+    else:
+        st.html(
+            "<h1 style='margin: 0; font-size: 42px; letter-spacing: 1px;'>MediCrón</h1>"
+        )
     st.html(
         "<p class='medi-eslogan' style='font-size: 16px; margin-top: 4px; text-align: center;'>"
         "Asistente Comunitario para Pacientes Crónicos</p>"
